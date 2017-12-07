@@ -519,6 +519,13 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         }
     }
     
+    open func resetOrientation() {
+        //Main purpose is to reset the preview layer orientation.  Problems occur if you are recording landscape, present a modal VC,
+        //then turn portriat to dismiss.  The preview view is then stuck in a prior orientation and not redrawn.  Calling this function
+        //will then update the orientation of the preview layer.
+        _orientationChanged()
+    }
+    
     fileprivate func saveVideoToLibrary(_ fileURL: URL) {
         if let validLibrary = library {
             validLibrary.performChanges({
