@@ -197,7 +197,8 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
     //Properties to set focus and capture mode when tap to focus is used (_focusStart)
     open var focusMode : AVCaptureDevice.FocusMode = .continuousAutoFocus
     open var exposureMode: AVCaptureDevice.ExposureMode = .continuousAutoExposure
-    
+    open var highPresetValue : AVCaptureSession.Preset = .high
+    open var videoCodec: String?
     
     // MARK: - Private properties
     
@@ -603,6 +604,10 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
             captureSession.addConnection(AVCaptureConnection(inputPorts: [inputPort], output: videoOutput))
             
             _updateIlluminationMode(flashMode)
+            
+            if let codec = self.videoCodec, let cnx = videoOutput.connection(with: .video) {
+                videoOutput.setOutputSettings([AVVideoCodecKey : codec], for: cnx)
+            }
             
             videoOutput.startRecording(to: _tempFilePath(), recordingDelegate: self)
         } else {
@@ -1045,6 +1050,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         if movieOutput == nil {
             let newMoviewOutput = AVCaptureMovieFileOutput()
             newMoviewOutput.movieFragmentInterval = CMTime.invalid
+            
             movieOutput = newMoviewOutput
             if let captureSession = captureSession {
                 if captureSession.canAddOutput(newMoviewOutput) {
@@ -1242,7 +1248,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         sessionQueue.async(execute: {
             if let validCaptureSession = self.captureSession {
                 validCaptureSession.beginConfiguration()
-                validCaptureSession.sessionPreset = AVCaptureSession.Preset.high
+                validCaptureSession.sessionPreset = self.highPresetValue
                 self._updateCameraDevice(self.cameraDevice)
                 self._setupOutputs()
                 self._setupOutputMode(self.cameraOutputMode, oldCameraOutputMode: nil)
@@ -1343,6 +1349,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
         let deviceHasCamera = UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.rear) || UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.front)
         if deviceHasCamera {
             let authorizationStatus = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
+            
             let userAgreedToUseIt = authorizationStatus == .authorized
             if userAgreedToUseIt {
                 return .ready
@@ -1700,7 +1707,7 @@ open class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGest
                 if cameraOutputMode == .stillImage {
                     sessionPreset = AVCaptureSession.Preset.photo
                 } else {
-                    sessionPreset = AVCaptureSession.Preset.high
+                    sessionPreset = self.highPresetValue
                 }
             }
             if validCaptureSession.canSetSessionPreset(sessionPreset) {
